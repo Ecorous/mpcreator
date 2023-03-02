@@ -34,6 +34,7 @@ proc getGitCommand(path: string, lang: Lang): string =
     result = "git clone https://github.com/QuiltMC/" & urlpath & " " & quoteIfNeeded path
 
 when isMainModule:
+    echo "MPCreator 1.1.0 by Ecorous System"
     echo "NOTICE: You need git installed and in PATH for this to work. You will get this notice regardless if it is installed already."
     let name = readLineFromStdin "Name of project (ex. ExampleMod): "
     if name.len() <= 0 or " " in name:
