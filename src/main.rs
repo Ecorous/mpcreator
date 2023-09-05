@@ -1,10 +1,10 @@
+use clap::Parser;
+use git2::Repository;
 use std::{
     fmt::{format, Display},
     path::{Path, PathBuf},
 };
 
-use clap::Parser;
-use git2::Repository;
 #[derive(Debug, Clone)]
 enum Loader {
     Quilt = 1,
@@ -264,13 +264,7 @@ fn main() {
         lang.clone().file_extension()
     ));
     std::fs::write(main_class_file.clone(), "").unwrap();
-    //println!(
-    //    "{}",
-    //    lang_new_maven_path
-    //        .clone()
-    //        .join(format!("ExampleMod.{}", lang.clone().file_extension()))
-    //        .display()
-    //);
+
     if verbose {
         println!(
             "MOVE: ExampleMod.{0} -> {1}.{0}",
