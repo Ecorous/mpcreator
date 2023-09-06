@@ -3,8 +3,8 @@ use std::{fmt::Display, path::PathBuf};
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
-pub mod input;
 pub mod change;
+pub mod input;
 
 #[derive(Debug, Clone, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 pub enum Loader {
