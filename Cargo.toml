@@ -11,4 +11,5 @@ clap = { version = "4.3.19", features = ["derive"] }
 git2 = "0.17.2"
 heck = "0.4.1"
 inquire = "0.6.2"
+regex = "1.9.5"
 serde = { version = "1.0.188", features = ["derive"] }

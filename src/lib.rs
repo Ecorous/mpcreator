@@ -63,6 +63,7 @@ impl Language {
 pub struct Project {
     pub title: String,
     pub id: String,
+    pub main_class_name: String,
     pub maven_group: String,
     pub loader: Loader,
     pub lang: Language,
@@ -74,13 +75,4 @@ pub struct RuntimeSettings {
     pub projects_dir: PathBuf,
     pub verbose: bool,
     pub no_persistence: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
-    projects_dir: PathBuf,
-    no_persistence: bool,
-    base_groups: Vec<String>,
-    preffered_lang: Option<Language>,
-    preffered_loader: Option<Loader>,
 }

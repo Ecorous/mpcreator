@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use heck::{ToUpperCamelCase, ToLowerCamelCase};
+use heck::ToLowerCamelCase;
 
 use crate::{Language, Project, RuntimeSettings};
 
@@ -87,7 +87,7 @@ fn handle_main_class(
 ) -> Result<()> {
     let main_class_file = paths.lang_new_maven_path.join(format!(
         "{}.{}",
-        project.title.to_upper_camel_case(),
+        project.main_class_name,
         project.lang.file_extension()
     ));
     rename_main_class(project, settings, paths, &main_class_file)
@@ -108,7 +108,7 @@ fn rename_main_class(
         println!(
             "MOVE: ExampleMod.{0} -> {1}.{0}",
             project.lang.file_extension(),
-            project.title.to_upper_camel_case()
+            project.main_class_name
         )
     }
     std::fs::rename(
@@ -225,10 +225,7 @@ fn change_mod_json(
         println!("CHANGE: quilt.mod.json")
     }
     let mod_json = std::fs::read_to_string(resources_path.join("quilt.mod.json"))?;
-    let mod_json = mod_json.replace(
-        "Mod Name",
-        &project.title,
-    );
+    let mod_json = mod_json.replace("Mod Name", &project.title);
     let mod_json = project.replace_group(mod_json);
     let mod_json = project.replace_mod_id(mod_json);
     let mod_json = project.replace_mod_name(mod_json);
@@ -286,7 +283,7 @@ impl Project {
     fn replace_group(&self, string: String) -> String {
         string.replace("com.example", &self.maven_group)
     }
-    
+
     fn replace_mod_name(&self, string: String) -> String {
         string.replace("Example Mod", &self.title)
     }
@@ -296,7 +293,7 @@ impl Project {
     }
 
     fn replace_class_name(&self, string: String) -> String {
-        string.replace("ExampleMod", &self.title.to_upper_camel_case())
+        string.replace("ExampleMod", &self.main_class_name)
     }
 
     fn replace_mod_prefix(&self, string: String) -> String {
