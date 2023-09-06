@@ -364,6 +364,7 @@ dependencies = [
  "anyhow",
  "clap",
  "git2",
+ "heck",
  "inquire",
  "serde",
 ]

@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
+use heck::{ToUpperCamelCase, ToLowerCamelCase};
 
 use crate::{Language, Project, RuntimeSettings};
 
@@ -86,7 +87,7 @@ fn handle_main_class(
 ) -> Result<()> {
     let main_class_file = paths.lang_new_maven_path.join(format!(
         "{}.{}",
-        project.title,
+        project.title.to_upper_camel_case(),
         project.lang.file_extension()
     ));
     rename_main_class(project, settings, paths, &main_class_file)
@@ -107,7 +108,7 @@ fn rename_main_class(
         println!(
             "MOVE: ExampleMod.{0} -> {1}.{0}",
             project.lang.file_extension(),
-            project.title
+            project.title.to_upper_camel_case()
         )
     }
     std::fs::rename(
@@ -128,15 +129,10 @@ fn change_main_class(
         println!("CHANGE: ExampleMod.{}", project.lang.file_extension())
     }
     let mut class_file = std::fs::read_to_string(&main_class_file)?;
-    class_file = class_file.replace("ExampleMod", &project.title);
-    class_file = class_file.replace(
-        "package com.example.example_mod",
-        &format!("package {}.{}", project.maven_group, project.id),
-    );
-    class_file = class_file.replace(
-        "LoggerFactory.getLogger(\"Example Mod\")",
-        &format!("LoggerFactory.getLogger(\"{}\")", project.title),
-    );
+    class_file = project.replace_class_name(class_file);
+    class_file = project.replace_group(class_file);
+    class_file = project.replace_mod_id(class_file);
+    class_file = project.replace_mod_name(class_file);
     std::fs::write(&main_class_file, class_file)?;
     Ok(())
 }
@@ -189,34 +185,6 @@ fn handle_kotlin_mixin(
 }
 
 fn change_mixin(project: &Project, settings: &RuntimeSettings, paths: &PathData) -> Result<()> {
-    fn rename_mixin_package(mixin_file: String, project: &Project) -> String {
-        mixin_file.replace(
-            "package com.example.example_mod.mixin",
-            &format!("package {}.{}.mixin", project.maven_group, project.id),
-        )
-    }
-
-    fn rename_main_class_import(mixin_file: String, project: &Project) -> String {
-        mixin_file.replace(
-            "import com.example.example_mod.ExampleMod",
-            &format!(
-                "import {}.{}.{}",
-                project.maven_group, project.id, project.title
-            ),
-        )
-    }
-
-    fn rename_instance_use(mixin_file: String, project: &Project) -> String {
-        if project.lang == Language::Java {
-            mixin_file.replace("ExampleMod.LOGGER", &format!("{}.LOGGER", project.title))
-        } else {
-            mixin_file.replace(
-                "ExampleMod.INSTANCE",
-                &format!("{}.INSTANCE", project.title),
-            )
-        }
-    }
-
     if settings.verbose {
         println!("CHANGE: mixin.TitleScreenMixin.java")
     }
@@ -228,10 +196,11 @@ fn change_mixin(project: &Project, settings: &RuntimeSettings, paths: &PathData)
         .join("mixin")
         .join("TitleScreenMixin.java");
     let mut mixin_file = std::fs::read_to_string(&mixin_path)?;
-    mixin_file = rename_mixin_package(mixin_file, project);
-    mixin_file = rename_main_class_import(mixin_file, project);
-    mixin_file = rename_instance_use(mixin_file, project);
-    mixin_file = mixin_file.replace("exampleMod$", &format!("{}$", project.id));
+    mixin_file = project.replace_group(mixin_file);
+    mixin_file = project.replace_mod_id(mixin_file);
+    mixin_file = project.replace_mod_name(mixin_file);
+    mixin_file = project.replace_class_name(mixin_file);
+    mixin_file = project.replace_mod_prefix(mixin_file);
     std::fs::write(mixin_path, mixin_file)?;
     Ok(())
 }
@@ -240,6 +209,7 @@ fn handle_resources(project: &Project, settings: &RuntimeSettings, paths: &PathD
     let resources_path: PathBuf = paths.src_main.join("resources");
 
     change_mod_json(project, settings, &resources_path).context("Error while handling mod json")?;
+    move_assets(project, settings, &resources_path).context("Error while moving assets")?;
     handle_mixin_json(project, settings, &resources_path)
         .context("Error while handling mixin json")?;
 
@@ -256,19 +226,28 @@ fn change_mod_json(
     }
     let mod_json = std::fs::read_to_string(resources_path.join("quilt.mod.json"))?;
     let mod_json = mod_json.replace(
-        "\"name\": \"Mod Name\"",
-        &format!("\"name\": \"{}\"", project.title),
+        "Mod Name",
+        &project.title,
     );
-    let mod_json = mod_json.replace(
-        "\"group\": \"com.example\"",
-        &format!("\"group\": \"{}\"", project.maven_group),
-    );
-    let mod_json = mod_json.replace(
-        "com.example.example_mod.ExampleMod",
-        &format!("{}.{}.{}", project.maven_group, project.id, project.title),
-    );
-    let mod_json = mod_json.replace("example_mod", &project.id);
+    let mod_json = project.replace_group(mod_json);
+    let mod_json = project.replace_mod_id(mod_json);
+    let mod_json = project.replace_mod_name(mod_json);
     std::fs::write(resources_path.join("quilt.mod.json"), mod_json)?;
+    Ok(())
+}
+
+fn move_assets(
+    project: &Project,
+    settings: &RuntimeSettings,
+    resources_path: &PathBuf,
+) -> Result<()> {
+    if settings.verbose {
+        println!("MOVE: assets/example_mod -> assets/{}", project.id)
+    }
+    std::fs::rename(
+        resources_path.join("assets").join("example_mod"),
+        resources_path.join("assets").join(&project.id),
+    )?;
     Ok(())
 }
 
@@ -293,14 +272,34 @@ fn handle_mixin_json(
     }
     let mixin_json =
         std::fs::read_to_string(resources_path.join(format!("{}.mixins.json", project.id)))?;
-    let mixin_json = mixin_json.replace(
-        "com.example.example_mod.mixin",
-        &format!("{}.{}.mixin", project.maven_group, project.id),
-    );
+    let mixin_json = project.replace_group(mixin_json);
+    let mixin_json = project.replace_mod_id(mixin_json);
 
     std::fs::write(
         resources_path.join(format!("{}.mixins.json", project.id)),
         mixin_json,
     )?;
     Ok(())
+}
+
+impl Project {
+    fn replace_group(&self, string: String) -> String {
+        string.replace("com.example", &self.maven_group)
+    }
+    
+    fn replace_mod_name(&self, string: String) -> String {
+        string.replace("Example Mod", &self.title)
+    }
+
+    fn replace_mod_id(&self, string: String) -> String {
+        string.replace("example_mod", &self.id)
+    }
+
+    fn replace_class_name(&self, string: String) -> String {
+        string.replace("ExampleMod", &self.title.to_upper_camel_case())
+    }
+
+    fn replace_mod_prefix(&self, string: String) -> String {
+        string.replace("exampleMod", &self.id.to_lower_camel_case())
+    }
 }

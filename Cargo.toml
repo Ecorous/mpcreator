@@ -9,5 +9,6 @@ edition = "2021"
 anyhow = "1.0.75"
 clap = { version = "4.3.19", features = ["derive"] }
 git2 = "0.17.2"
+heck = "0.4.1"
 inquire = "0.6.2"
 serde = { version = "1.0.188", features = ["derive"] }
