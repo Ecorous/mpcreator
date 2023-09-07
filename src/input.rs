@@ -5,7 +5,7 @@ use clap::Parser;
 use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase, ToUpperCamelCase};
 use inquire::{
     validator::{StringValidator, Validation},
-    Autocomplete, CustomUserError,
+    CustomUserError,
 };
 use itertools::Itertools;
 use regex::Regex;
@@ -123,33 +123,6 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
         },
         |it| Ok(it),
     )?;
-    let maven_group = cli.maven_group.map_or_else(
-        || {
-            let text = inquire::Text::new("Maven Group")
-                .with_validator(RegexValidator(Regex::new(GROUP_REGEX).unwrap()));
-
-            let text = match config.base_groups.len() {
-                0 => text.with_placeholder("e.g. com.example"),
-                1 => text.with_default(&config.base_groups[0]),
-                _ => text
-                    .with_autocomplete(GroupAutocomplete {
-                        input: String::new(),
-                        groups: config.base_groups.clone(),
-                        matching_groups: Vec::new(),
-                        longest_common_prefix: String::new(),
-                    })
-                    .with_placeholder("e.g. com.example"),
-            };
-            let text = text.prompt();
-            if let Ok(group) = &text {
-                if !config.base_groups.contains(group) {
-                    config.base_groups.push(group.clone());
-                }
-            }
-            text
-        },
-        |it| Ok(it),
-    )?;
     let author = cli.author.map_or_else(
         || {
             let mut prompt = inquire::Text::new("Author");
@@ -165,7 +138,7 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
         title: title.clone(),
         id,
         main_class_name,
-        maven_group,
+        maven_group: String::new(),
         author,
         repo_url: None,
         homepage_url: None,
@@ -174,6 +147,23 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
         lang,
         path: projects_dir.join(&title),
     };
+
+    let maven_group = cli.maven_group.map_or_else(
+        || {
+            let text = inquire::Text::new("Maven Group")
+                .with_validator(RegexValidator(Regex::new(GROUP_REGEX).unwrap()));
+
+            match &config.group_format {
+                None => text.with_placeholder("e.g. com.example").prompt(),
+                Some(format) => text.with_default(&format.format(&project)).prompt(),
+            }
+        },
+        |it| Ok(it),
+    )?;
+    if config.group_format.is_none() {
+        config.group_format = Some(StringTemplate::try_detect(&maven_group, &project));
+    }
+    project.maven_group = maven_group.clone();
 
     let repo_url = cli.repo_url.map_or_else(
         || {
@@ -192,7 +182,7 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
         None
     } else {
         if config.repo_url_format.is_none() {
-            config.repo_url_format = Some(UrlFormat::try_detect(&repo_url, &project));
+            config.repo_url_format = Some(StringTemplate::try_detect(&repo_url, &project));
         }
         Some(repo_url)
     };
@@ -214,7 +204,7 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
         None
     } else {
         if config.issues_url_format.is_none() {
-            config.issues_url_format = Some(UrlFormat::try_detect(&issues_url, &project));
+            config.issues_url_format = Some(StringTemplate::try_detect(&issues_url, &project));
         }
         Some(issues_url)
     };
@@ -236,7 +226,7 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
         None
     } else {
         if config.homepage_url_format.is_none() {
-            config.homepage_url_format = Some(UrlFormat::try_detect(&homepage_url, &project));
+            config.homepage_url_format = Some(StringTemplate::try_detect(&homepage_url, &project));
         }
         Some(homepage_url)
     };
@@ -271,19 +261,19 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
 pub struct Config {
     projects_dir: Option<PathBuf>,
     no_persistence: bool,
-    base_groups: Vec<String>,
     default_author: Option<String>,
-    homepage_url_format: Option<UrlFormat>,
-    repo_url_format: Option<UrlFormat>,
-    issues_url_format: Option<UrlFormat>,
+    group_format: Option<StringTemplate>,
+    homepage_url_format: Option<StringTemplate>,
+    repo_url_format: Option<StringTemplate>,
+    issues_url_format: Option<StringTemplate>,
     preffered_lang: Option<Language>,
     preffered_loader: Option<Loader>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UrlFormat(Vec<Part>);
+pub struct StringTemplate(Vec<Part>);
 
-impl UrlFormat {
+impl StringTemplate {
     const CASES: [Case; 5] = [
         Case::None,
         Case::SnakeCase,
@@ -295,7 +285,7 @@ impl UrlFormat {
         self.0.iter().map(|it| it.format(project)).join("")
     }
 
-    pub fn try_detect(url: &str, project: &Project) -> UrlFormat {
+    pub fn try_detect(url: &str, project: &Project) -> StringTemplate {
         let mut res = vec![Part::Literal(url.to_string())];
         for case in Self::CASES {
             res = res
@@ -341,7 +331,7 @@ impl UrlFormat {
                 .flatten()
                 .collect();
         }
-        UrlFormat(res)
+        StringTemplate(res)
     }
 }
 
@@ -419,81 +409,5 @@ fn parse_group(name: &str) -> Result<String, String> {
         Ok(name.to_string())
     } else {
         Err("Invalid class name".to_string())
-    }
-}
-
-#[derive(Clone)]
-struct GroupAutocomplete {
-    input: String,
-    groups: Vec<String>,
-    matching_groups: Vec<String>,
-    longest_common_prefix: String,
-}
-
-impl GroupAutocomplete {
-    fn update_input(&mut self, input: &str) -> std::result::Result<(), CustomUserError> {
-        if self.input == input {
-            return Ok(());
-        }
-        self.matching_groups = self
-            .groups
-            .iter()
-            .filter(|it| it.starts_with(&self.input))
-            .cloned()
-            .collect();
-        self.longest_common_prefix = self.longest_common_prefix();
-        self.input = input.to_string();
-        Ok(())
-    }
-
-    fn longest_common_prefix(&self) -> String {
-        let mut ret: String = String::new();
-
-        let mut sorted = self.matching_groups.clone();
-        sorted.sort();
-        if sorted.is_empty() {
-            return ret;
-        }
-
-        let mut first_word = sorted.first().unwrap().chars();
-        let mut last_word = sorted.last().unwrap().chars();
-
-        loop {
-            match (first_word.next(), last_word.next()) {
-                (Some(c1), Some(c2)) if c1 == c2 => {
-                    ret.push(c1);
-                }
-                _ => return ret,
-            }
-        }
-    }
-}
-
-impl Autocomplete for GroupAutocomplete {
-    fn get_suggestions(
-        &mut self,
-        input: &str,
-    ) -> std::result::Result<Vec<String>, CustomUserError> {
-        self.update_input(input)?;
-
-        Ok(self.matching_groups.clone())
-    }
-
-    fn get_completion(
-        &mut self,
-        input: &str,
-        highlighted_suggestion: Option<String>,
-    ) -> std::result::Result<inquire::autocompletion::Replacement, CustomUserError> {
-        self.update_input(input)?;
-
-        Ok(match highlighted_suggestion {
-            Some(suggestion) => inquire::autocompletion::Replacement::Some(suggestion),
-            None => match self.longest_common_prefix.is_empty() {
-                true => inquire::autocompletion::Replacement::None,
-                false => {
-                    inquire::autocompletion::Replacement::Some(self.longest_common_prefix.clone())
-                }
-            },
-        })
     }
 }
