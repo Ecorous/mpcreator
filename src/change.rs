@@ -40,6 +40,7 @@ pub fn change(settings: &RuntimeSettings, project: &Project) -> Result<()> {
     rename_main_class(project, settings, &path_data, &main_class_file)
         .context("Error while renaming main class")?;
 
+    #[cfg(not(target_os = "windows"))]
     std::fs::create_dir_all(
         path_data
             .src_main
@@ -71,6 +72,7 @@ fn move_source_code(project: &Project, settings: &RuntimeSettings, paths: &PathD
     if settings.verbose {
         println!("MOVE: com.example.example_mod -> {}", project.maven_group)
     }
+    #[cfg(not(target_os = "windows"))]
     std::fs::create_dir_all(&paths.lang_new_maven_path)?;
     std::fs::rename(
         paths
