@@ -96,7 +96,7 @@ pub enum ReplacementFile {
         #[serde(with = "serde_regex")]
         except_matching: Option<regex::Regex>,
     },
-    ONLY {
+    Only {
         path: String,
     },
 }
@@ -114,7 +114,7 @@ impl ReplacementFile {
                 .map_or(Ok(false), |it| -> Result<bool> {
                     Ok(it.is_match(check.to_str().context("Unable convert Path to String")?))
                 })?),
-            ReplacementFile::ONLY { path } => Ok(check.ends_with(path)),
+            ReplacementFile::Only { path } => Ok(check.ends_with(path)),
         }
     }
 }

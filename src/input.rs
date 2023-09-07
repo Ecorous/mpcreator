@@ -260,7 +260,7 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
     ));
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     projects_dir: Option<PathBuf>,
     no_persistence: bool,
@@ -273,6 +273,23 @@ pub struct Config {
     replacements: HashMap<Loader, HashMap<Language, Replacements>>,
     preffered_lang: Option<Language>,
     preffered_loader: Option<Loader>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            projects_dir: None,
+            no_persistence: false,
+            default_author: None,
+            group_format: None,
+            homepage_url_format: None,
+            repo_url_format: None,
+            issues_url_format: None,
+            replacements: default_replacements(),
+            preffered_lang: None,
+            preffered_loader: None,
+        }
+    }
 }
 
 fn default_replacements() -> HashMap<Loader, HashMap<Language, Replacements>> {
@@ -321,22 +338,22 @@ fn default_replacements() -> HashMap<Loader, HashMap<Language, Replacements>> {
             with: ReplacementInsertion::MainClass(Case::LowerCamelCase),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "Your name here".to_string(),
             with: ReplacementInsertion::Author(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "https://example.com/".to_string(),
             with: ReplacementInsertion::HomepageUrl(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "https://github.com/QuiltMC/quilt-template-mod/issues".to_string(),
             with: ReplacementInsertion::IssuesUrl(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "https://github.com/QuiltMC/quilt-template-mod".to_string(),
             with: ReplacementInsertion::RepoUrl(Case::None),
         },
@@ -385,27 +402,27 @@ fn default_replacements() -> HashMap<Loader, HashMap<Language, Replacements>> {
             with: ReplacementInsertion::MainClass(Case::LowerCamelCase),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "Mod Name".to_string(),
             with: ReplacementInsertion::Name(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "Your name here".to_string(),
             with: ReplacementInsertion::Author(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "https://example.com/".to_string(),
             with: ReplacementInsertion::HomepageUrl(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "https://github.com/QuiltMC/quilt-kotlin-template-mod/issues".to_string(),
             with: ReplacementInsertion::IssuesUrl(Case::None),
         },
         Replacement {
-            file: crate::ReplacementFile::ONLY { path: "quilt.mod.json".to_string() },
+            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
             replace: "https://github.com/QuiltMC/quilt-kotlin-template-mod".to_string(),
             with: ReplacementInsertion::RepoUrl(Case::None),
         },
