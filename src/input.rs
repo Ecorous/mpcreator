@@ -441,7 +441,7 @@ fn default_replacements() -> HashMap<Loader, HashMap<Language, Replacements>> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StringTemplate(Vec<Part>);
+pub struct StringTemplate(Vec<ReplacementInsertion>);
 
 impl StringTemplate {
     const CASES: [Case; 5] = [
@@ -460,18 +460,18 @@ impl StringTemplate {
     }
 
     pub fn try_detect(url: &str, project: &Project) -> StringTemplate {
-        let mut res = vec![Part::Literal(url.to_string())];
+        let mut res = vec![ReplacementInsertion::Literal(url.to_string())];
         for case in Self::CASES {
             res = res
                 .into_iter()
                 .map(|part| {
-                    if let Part::Literal(string) = &part {
+                    if let ReplacementInsertion::Literal(string) = &part {
                         string
                             .split(&case.format(&project.title))
-                            .map(|it| Part::Literal(it.to_string()))
+                            .map(|it| ReplacementInsertion::Literal(it.to_string()))
                             .fold(vec![], |mut vec, it| {
                                 if !vec.is_empty() {
-                                    vec.push(Part::Name(case));
+                                    vec.push(ReplacementInsertion::Name(case));
                                 }
                                 vec.push(it);
                                 vec
@@ -487,13 +487,13 @@ impl StringTemplate {
             res = res
                 .into_iter()
                 .map(|part| {
-                    if let Part::Literal(string) = &part {
+                    if let ReplacementInsertion::Literal(string) = &part {
                         string
                             .split(&case.format(&project.author))
-                            .map(|it| Part::Literal(it.to_string()))
+                            .map(|it| ReplacementInsertion::Literal(it.to_string()))
                             .fold(vec![], |mut vec, it| {
                                 if !vec.is_empty() {
-                                    vec.push(Part::Author(case));
+                                    vec.push(ReplacementInsertion::Author(case));
                                 }
                                 vec.push(it);
                                 vec
@@ -506,23 +506,6 @@ impl StringTemplate {
                 .collect();
         }
         StringTemplate(res)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Part {
-    Name(Case),
-    Author(Case),
-    Literal(String),
-}
-
-impl Part {
-    pub fn format(&self, project: &Project) -> String {
-        match self {
-            Self::Name(case) => case.format(&project.title),
-            Self::Author(case) => case.format(&project.author),
-            Self::Literal(string) => string.clone(),
-        }
     }
 }
 
