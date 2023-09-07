@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fmt::Display,
     path::{Path, PathBuf},
 };
@@ -7,10 +6,12 @@ use std::{
 use anyhow::{Context, Result};
 use clap::ValueEnum;
 use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase, ToUpperCamelCase};
+use input::TemplateData;
 use serde::{Deserialize, Serialize};
 
 pub mod change;
 pub mod input;
+mod template;
 
 #[derive(Debug, Clone, PartialEq, Eq, ValueEnum, Serialize, Deserialize, Hash)]
 pub enum Loader {
@@ -78,6 +79,7 @@ pub struct Project {
     pub loader: Loader,
     pub lang: Language,
     pub path: PathBuf,
+    pub template_data: TemplateData,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,7 +87,6 @@ pub struct RuntimeSettings {
     pub projects_dir: PathBuf,
     pub verbose: bool,
     pub no_persistence: bool,
-    pub replacements: HashMap<Loader, HashMap<Language, Replacements>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

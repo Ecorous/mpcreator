@@ -11,7 +11,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Case, Language, Loader, Project, Replacement, ReplacementInsertion, Replacements,
+    Case, Language, Loader, Project, ReplacementInsertion, Replacements,
     RuntimeSettings,
 };
 
@@ -137,6 +137,7 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
     )?;
 
     let mut project = Project {
+        template_data: config.template_data.get(&loader).unwrap().get(&lang).unwrap().clone(),
         title: title.clone(),
         id,
         main_class_name,
@@ -254,7 +255,6 @@ pub fn input() -> Result<(RuntimeSettings, Project)> {
             projects_dir: projects_dir.clone(),
             verbose,
             no_persistence,
-            replacements: config.replacements,
         },
         project,
     ));
@@ -269,8 +269,8 @@ pub struct Config {
     homepage_url_format: Option<StringTemplate>,
     repo_url_format: Option<StringTemplate>,
     issues_url_format: Option<StringTemplate>,
-    #[serde(default = "default_replacements")]
-    replacements: HashMap<Loader, HashMap<Language, Replacements>>,
+    #[serde(default = "default_template_data")]
+    template_data: HashMap<Loader, HashMap<Language, TemplateData>>,
     preffered_lang: Option<Language>,
     preffered_loader: Option<Loader>,
 }
@@ -285,159 +285,23 @@ impl Default for Config {
             homepage_url_format: None,
             repo_url_format: None,
             issues_url_format: None,
-            replacements: default_replacements(),
+            template_data: default_template_data(),
             preffered_lang: None,
             preffered_loader: None,
         }
     }
 }
 
-fn default_replacements() -> HashMap<Loader, HashMap<Language, Replacements>> {
-    let mut map = HashMap::new();
-    let mut loaders_map = HashMap::new();
-    loaders_map.insert(
-        Language::Java,
-        Replacements(vec![Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "com.example".to_string(),
-            with: ReplacementInsertion::Group(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "Example Mod".to_string(),
-            with: ReplacementInsertion::Name(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "example_mod".to_string(),
-            with: ReplacementInsertion::Id(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "ExampleMod".to_string(),
-            with: ReplacementInsertion::MainClass(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "exampleMod".to_string(),
-            with: ReplacementInsertion::MainClass(Case::LowerCamelCase),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "Your name here".to_string(),
-            with: ReplacementInsertion::Author(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "https://example.com/".to_string(),
-            with: ReplacementInsertion::HomepageUrl(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "https://github.com/QuiltMC/quilt-template-mod/issues".to_string(),
-            with: ReplacementInsertion::IssuesUrl(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "https://github.com/QuiltMC/quilt-template-mod".to_string(),
-            with: ReplacementInsertion::RepoUrl(Case::None),
-        },
-        ]),
-    );
-    loaders_map.insert(
-        Language::Kotlin,
-        Replacements(vec![Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "com.example".to_string(),
-            with: ReplacementInsertion::Group(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "Example Mod".to_string(),
-            with: ReplacementInsertion::Name(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "example_mod".to_string(),
-            with: ReplacementInsertion::Id(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "ExampleMod".to_string(),
-            with: ReplacementInsertion::MainClass(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "exampleMod".to_string(),
-            with: ReplacementInsertion::MainClass(Case::LowerCamelCase),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "Mod Name".to_string(),
-            with: ReplacementInsertion::Name(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "Your name here".to_string(),
-            with: ReplacementInsertion::Author(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "https://example.com/".to_string(),
-            with: ReplacementInsertion::HomepageUrl(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "https://github.com/QuiltMC/quilt-kotlin-template-mod/issues".to_string(),
-            with: ReplacementInsertion::IssuesUrl(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::Only { path: "quilt.mod.json".to_string() },
-            replace: "https://github.com/QuiltMC/quilt-kotlin-template-mod".to_string(),
-            with: ReplacementInsertion::RepoUrl(Case::None),
-        },
-        Replacement {
-            file: crate::ReplacementFile::All {
-                matching: None,
-                except_matching: Some(Regex::new(r"(\.jar)|(gradlew)|(gradlew.bat)|(README.md)|(.editorconfig)|(.gitignore)|(gradle-wrapper.properties)|(\.png)|(LICENSE-TEMPLATE.md)|(.gitattributes)$").unwrap()),
-            },
-            replace: "quilt-kotlin-template-mod".to_string(),
-            with: ReplacementInsertion::Id(Case::None),
-        },
-        ]),
-    );
-    map.insert(Loader::Quilt, loaders_map);
-    map
+fn default_template_data() -> HashMap<Loader, HashMap<Language, TemplateData>>{
+    crate::template::build_default_template_data()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateData {
+    pub repository_url: String,
+    pub replacements: Replacements,
+    // pub renames: Vec<(PathBuf, PathBuf)>,
+    // pub deletions: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

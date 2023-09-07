@@ -26,12 +26,7 @@ pub fn change(settings: &RuntimeSettings, project: &Project) -> Result<()> {
         lang_new_maven_path,
     };
 
-    settings
-        .replacements
-        .get(&project.loader)
-        .unwrap()
-        .get(&project.lang)
-        .unwrap()
+    project.template_data.replacements
         .apply(project.path.clone(), &project, settings.verbose)
         .context("while replacing constants based on config file")?;
 
