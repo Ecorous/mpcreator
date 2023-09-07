@@ -40,6 +40,7 @@ pub fn change(settings: &RuntimeSettings, project: &Project) -> Result<()> {
     rename_main_class(project, settings, &path_data, &main_class_file)
         .context("Error while renaming main class")?;
 
+    #[cfg(not(target_os = "windows"))]
     std::fs::create_dir_all(
         path_data
             .src_main
@@ -47,6 +48,15 @@ pub fn change(settings: &RuntimeSettings, project: &Project) -> Result<()> {
             .join(&path_data.maven_g_path)
             .join(&project.id)
             .join("mixin"),
+    )?;
+    
+    #[cfg(target_os = "windows")]
+    std::fs::create_dir_all(
+        path_data
+            .src_main
+            .join("java")
+            .join(&path_data.maven_g_path)
+            .join(&project.id)
     )?;
     move_kotlin_mixin(project, settings, &path_data).context("Error while moving kotlin mixin")?;
 
@@ -71,7 +81,10 @@ fn move_source_code(project: &Project, settings: &RuntimeSettings, paths: &PathD
     if settings.verbose {
         println!("MOVE: com.example.example_mod -> {}", project.maven_group)
     }
+    #[cfg(not(target_os = "windows"))]
     std::fs::create_dir_all(&paths.lang_new_maven_path)?;
+    #[cfg(target_os = "windows")]
+    std::fs::create_dir_all(&paths.lang_new_maven_path.parent().unwrap())?;
     std::fs::rename(
         paths
             .src_main
